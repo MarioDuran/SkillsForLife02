@@ -16,14 +16,14 @@
 </head>
 <body class="min-h-screen flex items-center justify-center p-4 bg-[#1B1B1E]">
 
-    <div class="max-w-6xl w-full grid grid-cols-1 lg:grid-cols-2 gap-8">
+    <div class="max-w-7xl w-full grid grid-cols-1 lg:grid-cols-2 gap-8">
         
         <div class="flex flex-col items-center w-full">
             <h1 class="text-4xl font-bold text-[#00E5FF] mb-2 tracking-tight drop-shadow-[0_0_8px_rgba(0,229,255,0.5)]">Neural Flappy</h1>
             <p class="text-[#898B4B] mb-6 text-sm text-center">Fase 1: Recolecta. Fase 2: Diseña. Fase 3: Observa.</p>
             
             <div class="relative bg-[#27272B] p-3 rounded-xl border border-[#464849] shadow-[0_0_30px_rgba(0,229,255,0.1)]">
-                <canvas id="gameCanvas" width="400" height="500" class="rounded-lg bg-[#151518] w-full max-w-[400px] border border-[#464849] cursor-pointer"></canvas>
+                <canvas id="gameCanvas" width="480" height="600" class="rounded-lg bg-[#151518] w-full max-w-[480px] border border-[#464849] cursor-pointer"></canvas>
                 
                 <div id="gameOverlay" class="absolute inset-0 flex items-center justify-center pointer-events-none hidden">
                     <h2 id="overlayText" class="text-3xl font-bold text-[#F9E40B] bg-[#1B1B1E]/90 px-6 py-3 rounded-lg border border-[#F3DA4B] shadow-lg">¡JUEGO TERMINADO!</h2>
@@ -132,6 +132,7 @@
                             <div class="w-full bg-[#1B1B1E] rounded-full h-3 border border-[#464849]">
                                 <div id="trainProgressBar" class="bg-[#00E5FF] h-full rounded-full transition-all duration-100 shadow-[0_0_10px_rgba(0,229,255,0.5)]" style="width: 0%"></div>
                             </div>
+                            <div id="trainLoss" class="text-xs text-[#00E5FF] text-center mt-2 font-mono">Loss: 0.0000</div>
                         </div>
                     </div>
 
@@ -204,7 +205,14 @@
                     this.predict(inputs);
                     let errors = Array(this.numLayers - 1).fill().map(() => []);
                     let out_a = this.lastActivations[this.numLayers - 1];
-                    errors[this.numLayers - 2] = targets.map((t, idx) => t - out_a[idx]);
+                    
+                    let loss = 0;
+                    errors[this.numLayers - 2] = targets.map((t, idx) => {
+                        let e = t - out_a[idx];
+                        loss += e * e; // Accumulate Squared Error
+                        return e;
+                    });
+                    loss /= targets.length; // Mean Squared Error para este ejemplo
 
                     for(let i = this.numLayers - 3; i >= 0; i--) {
                         let err = Array(this.sizes[i + 1]).fill(0);
@@ -222,6 +230,8 @@
                             for(let c = 0; c < this.sizes[i]; c++) this.weights[i][r][c] += gradient * a[c];
                         }
                     }
+                    
+                    return loss; // Retornamos el loss calculado
                 }
             }
 
@@ -232,7 +242,8 @@
             let nn = new MultiLayerPerceptron([3, 6, 1]); 
 
             let frames = 0, score = 0, difficulty = 1, gameSpeed = 3, pipeSpawnRate = 100;
-            let gameState = 'MANUAL_PLAY'; let collectedData = []; let userWantsToJump = false;
+            let gameState = 'WAITING_TO_START'; // EMPEZAMOS EN ESPERA
+            let collectedData = []; let userWantsToJump = false;
 
             // --- UI Y PESTAÑAS ---
             const tabs = {
@@ -253,7 +264,7 @@
                 active.btn.classList.add('bg-[#213536]', 'text-[#00E5FF]', 'shadow-[0_0_10px_rgba(0,229,255,0.2)]', 'border-[#00E5FF]');
 
                 if(tabName === 'human') {
-                    resetGame('MANUAL_PLAY'); setStatus("Modo Humano: Usa Espacio para saltar y generar datos.");
+                    resetGame('WAITING_TO_START'); setStatus("Modo Humano: Usa Espacio para saltar y generar datos.");
                     document.getElementById('aiActivePing').classList.remove('animate-ping'); document.getElementById('aiActivePing').classList.add('opacity-0');
                     document.getElementById('aiActiveDot').classList.replace('bg-[#00E5FF]', 'bg-[#464849]');
                 } else if(tabName === 'design') {
@@ -294,12 +305,11 @@
 
             slLayers.addEventListener('input', updateArchitecture); slNeurons.addEventListener('input', updateArchitecture);
             
-            // VALIDACIÓN DE CHECKBOXES (No dejar que sean 0)
             checkboxes.forEach(chk => {
                 chk.addEventListener('change', (e) => {
                     let inputsCount = getInputsCount();
                     if(inputsCount === 0) {
-                        e.target.checked = true; // Revertir acción
+                        e.target.checked = true;
                         setStatus("¡La IA se quedaría ciega! Debe tener al menos un sentido activado.", true);
                         return;
                     }
@@ -314,25 +324,41 @@
                 document.getElementById('dataLog').innerHTML = '<div class="text-center text-[#464849] mt-4">Juega para recolectar datos...</div>';
             });
 
-            // --- EFECTO DE FONDO (NUEVO) ---
+            // --- EFECTO DE FONDO (MEJORADO CON NEBULOSAS) ---
             class Background {
-                constructor() {
-                    this.stars = Array(60).fill().map(() => ({ x: Math.random() * 400, y: Math.random() * 500, size: Math.random() * 1.5 + 0.5, speed: Math.random() * 0.3 + 0.1 }));
+                constructor(w, h) {
+                    this.w = w; this.h = h;
+                    this.stars = Array(80).fill().map(() => ({ x: Math.random() * w, y: Math.random() * h, size: Math.random() * 2 + 0.5, speed: Math.random() * 0.4 + 0.1 }));
+                    this.clouds = Array(4).fill().map(() => ({ x: Math.random() * w, y: Math.random() * (h*0.8), radius: 60 + Math.random() * 120, speed: Math.random() * 0.15 + 0.05 }));
                     this.buildings = [];
-                    for(let i=0; i<15; i++) this.buildings.push({ x: i * 35, w: 25 + Math.random() * 20, h: 10 + Math.random() * 80 });
+                    let maxB = Math.ceil(w/35) + 1;
+                    for(let i=0; i<maxB; i++) this.buildings.push({ x: i * 35, w: 25 + Math.random() * 20, h: 10 + Math.random() * 90 });
                 }
                 draw(ctx, speedMult) {
+                    // Nubes tenues (Nebulosas cyan oscuro)
+                    this.clouds.forEach(c => {
+                        c.x -= c.speed * speedMult; if(c.x + c.radius < 0) c.x = this.w + c.radius;
+                        let grad = ctx.createRadialGradient(c.x, c.y, 0, c.x, c.y, c.radius);
+                        grad.addColorStop(0, 'rgba(0, 229, 255, 0.04)');
+                        grad.addColorStop(1, 'rgba(0, 229, 255, 0)');
+                        ctx.fillStyle = grad;
+                        ctx.beginPath(); ctx.arc(c.x, c.y, c.radius, 0, Math.PI*2); ctx.fill();
+                    });
+
+                    // Estrellas
                     ctx.fillStyle = '#FFFFFF';
                     this.stars.forEach(s => {
-                        s.x -= s.speed * speedMult; if(s.x < 0) s.x = 400;
+                        s.x -= s.speed * speedMult; if(s.x < 0) s.x = this.w;
                         ctx.globalAlpha = s.speed; ctx.fillRect(s.x, s.y, s.size, s.size);
                     });
                     ctx.globalAlpha = 1.0;
-                    ctx.fillStyle = '#1D1D21'; // Edificios muy oscuros
+                    
+                    // Edificios
+                    ctx.fillStyle = '#1D1D21'; 
                     this.buildings.forEach(b => {
                         b.x -= 0.8 * speedMult;
-                        if(b.x + b.w < 0) { b.x = 400; b.h = 10 + Math.random() * 80; }
-                        ctx.fillRect(b.x, 500 - b.h, b.w, b.h);
+                        if(b.x + b.w < 0) { b.x = this.w; b.h = 10 + Math.random() * 90; }
+                        ctx.fillRect(b.x, this.h - b.h, b.w, b.h);
                     });
                 }
             }
@@ -340,7 +366,7 @@
             // --- CLASES DEL JUEGO ---
             class DroneBird {
                 constructor() {
-                    this.x = 60; this.y = cvs.height / 2;
+                    this.x = 80; this.y = cvs.height / 2;
                     this.velocity = 0; this.gravity = 0.4; this.jumpStrength = 6.5;
                     this.radius = 12; this.frameCount = 0;
                 }
@@ -350,25 +376,21 @@
                     this.frameCount++; ctx.save(); ctx.translate(this.x, this.y);
                     let rotation = Math.min(Math.PI / 4, Math.max(-Math.PI / 4, (this.velocity * 0.1))); ctx.rotate(rotation);
 
-                    // Propulsor (Fuego)
                     if (this.velocity < 0) {
                         ctx.fillStyle = '#00E5FF';
                         ctx.beginPath(); ctx.ellipse(-16, 2, 6 + Math.random()*5, 3, 0, 0, Math.PI*2); ctx.fill();
                     }
 
-                    // Cuerpo principal
                     ctx.fillStyle = '#27272B';
                     ctx.beginPath(); ctx.ellipse(0, 0, 16, 10, 0, 0, Math.PI*2); ctx.fill();
                     ctx.lineWidth = 2; ctx.strokeStyle = '#464849'; ctx.stroke();
 
-                    // Visor Neon
                     ctx.fillStyle = '#00E5FF';
                     ctx.beginPath(); ctx.ellipse(8, -2, 5, 7, Math.PI/6, 0, Math.PI*2); ctx.fill();
                     ctx.shadowBlur = 10; ctx.shadowColor = '#00E5FF';
                     ctx.fillStyle = '#FFFFFF'; ctx.beginPath(); ctx.arc(9, -4, 1.5, 0, Math.PI*2); ctx.fill();
                     ctx.shadowBlur = 0;
 
-                    // Ala robótica
                     let flap = Math.sin(this.frameCount * 0.5) * 4;
                     ctx.fillStyle = '#1B1B1E';
                     ctx.beginPath(); ctx.moveTo(-6, 0); ctx.lineTo(4, 0); ctx.lineTo(-1, 8 + flap); ctx.closePath();
@@ -380,31 +402,29 @@
 
             class CyberPipe {
                 constructor() {
-                    this.x = cvs.width; this.w = 50; this.gap = Math.max(75, 160 - (difficulty * 12));
-                    this.topH = Math.random() * (cvs.height - this.gap - 60) + 30; this.bottomY = this.topH + this.gap; this.passed = false;
+                    this.x = cvs.width; this.w = 55; this.gap = Math.max(80, 170 - (difficulty * 12));
+                    this.topH = Math.random() * (cvs.height - this.gap - 80) + 40; this.bottomY = this.topH + this.gap; this.passed = false;
                 }
                 update() { this.x -= gameSpeed; }
                 draw() {
                     let bodyColor = '#1B1B1E', borderColor = '#00E5FF', highlightColor = '#27272B';
                     ctx.lineWidth = 2; let capH = 20, capW = this.w + 8, capOffsetX = -4;
                     
-                    // Tubo superior
                     ctx.fillStyle = bodyColor; ctx.strokeStyle = borderColor; 
                     ctx.fillRect(this.x, 0, this.w, this.topH - capH); ctx.strokeRect(this.x, 0, this.w, this.topH - capH);
                     ctx.fillStyle = highlightColor; ctx.fillRect(this.x + 5, 0, 4, this.topH - capH);
-                    // Tapa sup
+                    
                     ctx.fillStyle = bodyColor; ctx.fillRect(this.x + capOffsetX, this.topH - capH, capW, capH); ctx.strokeRect(this.x + capOffsetX, this.topH - capH, capW, capH);
                     
-                    // Tubo inferior
                     let bottomH = cvs.height - this.bottomY;
                     ctx.fillStyle = bodyColor; ctx.fillRect(this.x, this.bottomY + capH, this.w, bottomH - capH); ctx.strokeRect(this.x, this.bottomY + capH, this.w, bottomH - capH);
                     ctx.fillStyle = highlightColor; ctx.fillRect(this.x + 5, this.bottomY + capH, 4, bottomH - capH);
-                    // Tapa inf
+                    
                     ctx.fillStyle = bodyColor; ctx.fillRect(this.x + capOffsetX, this.bottomY, capW, capH); ctx.strokeRect(this.x + capOffsetX, this.bottomY, capW, capH);
                 }
             }
 
-            let bg = new Background();
+            let bg = new Background(cvs.width, cvs.height);
             let bird = new DroneBird(); let pipes = [];
 
             function setStatus(msg, isAlert = false) {
@@ -414,7 +434,7 @@
             }
 
             function resetGame(mode) {
-                bird = new DroneBird(); pipes = []; score = 0; difficulty = 1; gameSpeed = 3.5; pipeSpawnRate = 100; frames = 0; gameState = mode;
+                bird = new DroneBird(); pipes = []; score = 0; difficulty = 1; gameSpeed = 3.5; pipeSpawnRate = 110; frames = 0; gameState = mode;
                 document.getElementById('scoreDisplay').innerText = score; document.getElementById('diffDisplay').innerText = difficulty;
                 document.getElementById('gameOverlay').classList.add('hidden');
             }
@@ -431,7 +451,7 @@
                 return jumps.concat(nonJumps.slice(0, Math.min(limit, nonJumps.length)));
             }
 
-            // --- ENTRENAMIENTO ---
+            // --- ENTRENAMIENTO CON LOSS ---
             document.getElementById('btnTrain').addEventListener('click', () => {
                 if(collectedData.length < 50) { setStatus("¡Necesitas al menos 50 datos! Ve a la pestaña '1. Humano' y juega.", true); return; }
                 let dataset = balanceData(collectedData);
@@ -444,17 +464,29 @@
                 
                 function batchTrain() {
                     let stepsPerFrame = Math.max(5, Math.floor(epochs / 100));
+                    let lastLoss = 0;
+                    
                     for(let k=0; k<stepsPerFrame; k++) {
                         if(currentEpoch >= epochs) { 
                             gameState = 'IDLE'; setStatus("¡Entrenamiento completado! Pestaña '3. Jugar (IA)' desbloqueada.");
-                            setTimeout(() => { document.getElementById('trainProgressContainer').classList.add('hidden'); }, 1500);
+                            setTimeout(() => { document.getElementById('trainProgressContainer').classList.add('hidden'); }, 2000);
                             tabs.ai.btn.disabled = false; tabs.ai.btn.classList.remove('cursor-not-allowed', 'text-[#464849]'); tabs.ai.btn.classList.add('hover:border-[#898B4B]');
                             document.getElementById('btnTrain').disabled = false; return; 
                         }
-                        dataset.sort(() => Math.random() - 0.5); for(let d of dataset) nn.train(d.inputs, d.targets, lr); currentEpoch++;
+                        dataset.sort(() => Math.random() - 0.5); 
+                        let stepLoss = 0;
+                        for(let d of dataset) {
+                            stepLoss += nn.train(d.inputs, d.targets, lr); 
+                        }
+                        lastLoss = stepLoss / dataset.length;
+                        currentEpoch++;
                     }
+                    
                     let pct = Math.floor((currentEpoch / epochs) * 100);
-                    document.getElementById('trainProgressBar').style.width = pct + '%'; document.getElementById('trainPercent').innerText = pct + '%';
+                    document.getElementById('trainProgressBar').style.width = pct + '%'; 
+                    document.getElementById('trainPercent').innerText = pct + '%';
+                    document.getElementById('trainLoss').innerText = `Loss: ${lastLoss.toFixed(5)}`;
+                    
                     requestAnimationFrame(batchTrain);
                 }
                 requestAnimationFrame(batchTrain);
@@ -481,7 +513,6 @@
                         let node = positions[l][n];
                         nnCtx.beginPath(); nnCtx.arc(node.x, node.y, nodeRadius, 0, Math.PI * 2);
                         let act = Math.max(0, Math.min(1, node.act)); 
-                        // Color base a Cyan oscuro si act = 0, Cyan brillante si act = 1
                         let r = Math.round(27 + (0 - 27) * act), g = Math.round(27 + (229 - 27) * act), b = Math.round(30 + (255 - 30) * act);
                         nnCtx.fillStyle = `rgb(${r},${g},${b})`; nnCtx.fill();
                         if(act > 0.8 && gameState === 'AI_PLAY') { nnCtx.shadowBlur = 10; nnCtx.shadowColor = '#00E5FF'; }
@@ -502,14 +533,27 @@
             function gameLoop() {
                 ctx.clearRect(0, 0, cvs.width, cvs.height);
                 
-                // Dibujar fondo animado (Lento si está en reposo, rápido si juega)
-                bg.draw(ctx, (gameState === 'IDLE' || gameState === 'GAME_OVER') ? 0.3 : 1);
+                // Fondo animado constante
+                bg.draw(ctx, (gameState === 'IDLE' || gameState === 'GAME_OVER' || gameState === 'WAITING_TO_START') ? 0.3 : 1);
 
-                if(gameState === 'MANUAL_PLAY' || gameState === 'AI_PLAY') {
+                if(gameState === 'WAITING_TO_START') {
+                    // Efecto de flotación suave en espera
+                    bird.y = cvs.height / 2 + Math.sin(frames * 0.05) * 8;
+                    bird.velocity = 0;
+                    bird.draw();
+                    
+                    // Texto parpadeante en el canvas
+                    ctx.fillStyle = `rgba(255, 255, 255, ${0.5 + Math.sin(frames * 0.1) * 0.5})`;
+                    ctx.font = "bold 18px Inter";
+                    ctx.textAlign = "center";
+                    ctx.fillText("Presiona ESPACIO para iniciar", cvs.width / 2, cvs.height / 2 + 50);
+                    frames++;
+                }
+                else if(gameState === 'MANUAL_PLAY' || gameState === 'AI_PLAY') {
                     if(frames % pipeSpawnRate === 0) pipes.push(new CyberPipe());
 
                     let closestPipe = pipes.find(p => p.x + p.w > bird.x - bird.radius);
-                    if(!closestPipe) closestPipe = { x: cvs.width, w: 50, topH: 0, bottomY: cvs.height, gap: cvs.height };
+                    if(!closestPipe) closestPipe = { x: cvs.width, w: 55, topH: 0, bottomY: cvs.height, gap: cvs.height };
 
                     let gapCenterY = closestPipe.topH + (closestPipe.bottomY - closestPipe.topH) / 2;
                     let inputs = getActiveInputs(closestPipe, gapCenterY);
@@ -555,9 +599,12 @@
             }
 
             function triggerJump() {
-                if(gameState === 'MANUAL_PLAY') userWantsToJump = true;
-                else if (gameState === 'IDLE' || gameState === 'GAME_OVER') {
-                    if (tabs.human.content.classList.contains('active')) resetGame('MANUAL_PLAY');
+                if(gameState === 'WAITING_TO_START') {
+                    gameState = 'MANUAL_PLAY'; bird.jump();
+                } else if(gameState === 'MANUAL_PLAY') {
+                    userWantsToJump = true;
+                } else if (gameState === 'IDLE' || gameState === 'GAME_OVER') {
+                    if (tabs.human.content.classList.contains('active')) resetGame('WAITING_TO_START');
                 }
             }
 
