@@ -3,12 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Neural Flappy AI</title>
+    <title>Neural Flappy AI - Custom</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-        
-        /* Estilos base por si Tailwind falla o tarda en cargar */
         body {
             font-family: 'Inter', sans-serif;
             background-color: #1B1B1E;
@@ -17,12 +15,7 @@
             margin: 0;
             padding: 0;
         }
-        canvas {
-            display: block;
-            margin: 0 auto;
-        }
-        /* Ocultar elementos estáticos temporalmente hasta que el JS cargue */
-        .hidden-safely { display: none !important; }
+        canvas { display: block; margin: 0 auto; }
     </style>
 </head>
 <body class="min-h-screen flex items-center justify-center p-4 bg-[#1B1B1E]">
@@ -31,7 +24,7 @@
         
         <div class="flex flex-col items-center w-full">
             <h1 class="text-4xl font-bold text-[#F3DA4B] mb-2 tracking-tight">Neural Flappy</h1>
-            <p class="text-[#898B4B] mb-6 text-sm text-center">Enseña a la IA a jugar recolectando datos.</p>
+            <p class="text-[#898B4B] mb-6 text-sm text-center">Configura, enseña y observa a la IA.</p>
             
             <div class="relative bg-[#27272B] p-3 rounded-xl border border-[#464849] shadow-[0_0_20px_rgba(45,71,59,0.2)]">
                 <canvas id="gameCanvas" width="400" height="500" class="rounded-lg bg-[#1B1B1E] w-full max-w-[400px] border border-[#464849] cursor-pointer"></canvas>
@@ -56,17 +49,65 @@
 
         <div class="flex flex-col gap-6 w-full">
             
+            <div class="bg-[#27272B] p-5 rounded-xl shadow-lg border border-[#464849]">
+                <h2 class="text-xl font-semibold text-[#CBC9C2] mb-3 flex justify-between items-center">
+                    Ajustes de la IA
+                    <span class="text-xs font-normal text-[#898B4B]">Modifica hiperparámetros</span>
+                </h2>
+                
+                <div class="mb-4">
+                    <label class="text-sm text-[#898B4B] flex justify-between">
+                        <span>1. Arquitectura: Neuronas Ocultas</span>
+                        <span id="valNeurons" class="text-[#F3DA4B] font-bold">6</span>
+                    </label>
+                    <input type="range" id="slNeurons" min="2" max="16" value="6" class="w-full mt-2 accent-[#F9E40B]">
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="text-sm text-[#898B4B]">2. Tasa de Apren. (LR)</label>
+                        <select id="selLR" class="w-full bg-[#1B1B1E] text-[#CBC9C2] border border-[#464849] rounded p-2 text-sm mt-1 focus:outline-none focus:border-[#F9E40B]">
+                            <option value="0.05">0.05 (Lento)</option>
+                            <option value="0.25" selected>0.25 (Normal)</option>
+                            <option value="0.8">0.8 (Inestable)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-sm text-[#898B4B]">2. Épocas (Epochs)</label>
+                        <select id="selEpochs" class="w-full bg-[#1B1B1E] text-[#CBC9C2] border border-[#464849] rounded p-2 text-sm mt-1 focus:outline-none focus:border-[#F9E40B]">
+                            <option value="500">500 (Rápido)</option>
+                            <option value="1500" selected>1500 (Normal)</option>
+                            <option value="5000">5000 (Exhaustivo)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="text-sm text-[#898B4B] block mb-2">3. Sentidos (¿Qué ve la IA?)</label>
+                    <div class="grid grid-cols-2 gap-2 text-xs text-[#CBC9C2]">
+                        <label class="flex items-center gap-2 hover:text-[#F3DA4B] cursor-pointer"><input type="checkbox" id="chkDistX" checked class="accent-[#F9E40B]"> Dist. X al tubo</label>
+                        <label class="flex items-center gap-2 hover:text-[#F3DA4B] cursor-pointer"><input type="checkbox" id="chkDistY" checked class="accent-[#F9E40B]"> Dist. Y al hueco</label>
+                        <label class="flex items-center gap-2 hover:text-[#F3DA4B] cursor-pointer"><input type="checkbox" id="chkVel" checked class="accent-[#F9E40B]"> Velocidad actual</label>
+                        <label class="flex items-center gap-2 hover:text-[#F3DA4B] cursor-pointer"><input type="checkbox" id="chkPosY" class="accent-[#F9E40B]"> Altura Absoluta (Y)</label>
+                    </div>
+                </div>
+
+                <button id="btnApplyConfig" class="mt-5 w-full bg-[#1B1B1E] hover:bg-[#606C43] text-[#F3DA4B] border border-[#464849] hover:border-[#F9E40B] py-2 rounded-lg transition-all font-semibold text-sm shadow-md">
+                    Aplicar Cambios (Reiniciará los datos)
+                </button>
+            </div>
+
             <div class="bg-[#27272B] p-6 rounded-xl shadow-lg border border-[#464849]">
                 <h2 class="text-2xl font-semibold text-[#F3DA4B] mb-4">Panel de Entrenamiento</h2>
                 
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
-                    <button id="btnHuman" class="bg-[#2D473B] hover:bg-[#606C43] text-[#F3DA4B] py-3 px-4 rounded-lg transition-all font-semibold shadow-md border border-[#898B4B]">
+                    <button id="btnHuman" class="bg-[#2D473B] hover:bg-[#606C43] text-[#F3DA4B] py-3 px-2 rounded-lg transition-all font-semibold shadow-md border border-[#898B4B] text-sm">
                         1. Jugar (Humano)
                     </button>
-                    <button id="btnTrain" class="bg-[#464849] hover:bg-[#898B4B] text-[#CBC9C2] hover:text-[#1B1B1E] py-3 px-4 rounded-lg transition-all font-semibold border border-[#898B4B]">
+                    <button id="btnTrain" class="bg-[#464849] hover:bg-[#898B4B] text-[#CBC9C2] hover:text-[#1B1B1E] py-3 px-2 rounded-lg transition-all font-semibold border border-[#898B4B] text-sm">
                         2. Entrenar IA
                     </button>
-                    <button id="btnAI" class="bg-[#1B1B1E] text-[#464849] py-3 px-4 rounded-lg transition-all font-semibold border border-[#464849] cursor-not-allowed" disabled>
+                    <button id="btnAI" class="bg-[#1B1B1E] text-[#464849] py-3 px-2 rounded-lg transition-all font-semibold border border-[#464849] cursor-not-allowed text-sm" disabled>
                         3. Jugar (IA)
                     </button>
                 </div>
@@ -76,17 +117,15 @@
                         <p class="text-sm text-[#CBC9C2]">Datos recolectados:</p>
                         <p class="text-2xl font-bold text-[#F9E40B]" id="dataCount">0 <span class="text-sm font-normal text-[#898B4B]">frames</span></p>
                     </div>
-                    <button id="btnResetData" class="text-xs text-[#898B4B] hover:text-[#F9E40B] underline transition-colors">
-                        Borrar Datos
-                    </button>
+                    <button id="btnResetData" class="text-xs text-[#898B4B] hover:text-[#F9E40B] underline transition-colors">Borrar Datos</button>
                 </div>
 
-                <div class="mt-3 bg-[#1B1B1E] border border-[#464849] rounded-lg p-2 h-32 overflow-y-auto text-xs font-mono text-[#898B4B] flex flex-col gap-1 shadow-inner" id="dataLog">
-                    <div class="text-center text-[#464849] mt-10">Los datos aparecerán aquí...</div>
+                <div class="mt-3 bg-[#1B1B1E] border border-[#464849] rounded-lg p-2 h-24 overflow-y-auto text-xs font-mono text-[#898B4B] flex flex-col gap-1 shadow-inner" id="dataLog">
+                    <div class="text-center text-[#464849] mt-6">Los datos aparecerán aquí...</div>
                 </div>
 
                 <div id="statusMessage" class="mt-4 text-sm text-[#F3DA4B] bg-[#B59E30]/20 border border-[#B59E30]/40 p-3 rounded-lg text-center">
-                    Selecciona "Jugar (Humano)" para empezar a generar datos. Usa Espacio o Click para saltar.
+                    Ajusta la IA arriba, luego "Jugar (Humano)" para empezar.
                 </div>
 
                 <div id="trainProgressContainer" class="hidden mt-4">
@@ -108,11 +147,11 @@
                       <span class="relative inline-flex rounded-full h-3 w-3 bg-[#464849]" id="aiActiveDot"></span>
                     </span>
                 </div>
-                <div class="w-full flex justify-center bg-[#1B1B1E] p-4 rounded-lg border border-[#464849] relative min-h-[254px]">
-                    <canvas id="nnCanvas" width="350" height="220" class="max-w-full"></canvas>
+                <div class="w-full flex justify-center bg-[#1B1B1E] p-4 rounded-lg border border-[#464849] relative min-h-[200px]">
+                    <canvas id="nnCanvas" width="350" height="200" class="max-w-full"></canvas>
                 </div>
-                <p class="text-xs text-[#898B4B] mt-4 text-center">
-                    Nodos: 3 Entradas → 6 Ocultos → 1 Salida (Saltar).
+                <p id="nnDesc" class="text-xs text-[#898B4B] mt-4 text-center">
+                    Nodos: 3 Entradas → 6 Ocultos → 1 Salida.
                 </p>
             </div>
 
@@ -120,10 +159,9 @@
     </div>
 
     <script>
-        // Encapsulamos todo en un DOMContentLoaded para asegurar que el HTML cargue primero
         document.addEventListener('DOMContentLoaded', () => {
             
-            // --- MOTOR DE RED NEURONAL ---
+            // --- RED NEURONAL BASE ---
             function sigmoid(x) { return 1 / (1 + Math.exp(-x)); }
             
             class NeuralNetwork {
@@ -134,7 +172,6 @@
 
                     this.w_ih = Array(this.h).fill().map(() => Array(this.i).fill().map(() => Math.random() * 2 - 1));
                     this.w_ho = Array(this.o).fill().map(() => Array(this.h).fill().map(() => Math.random() * 2 - 1));
-                    
                     this.b_h = Array(this.h).fill().map(() => Math.random() * 2 - 1);
                     this.b_o = Array(this.o).fill().map(() => Math.random() * 2 - 1);
 
@@ -145,7 +182,6 @@
 
                 predict(input_array) {
                     this.lastInputs = [...input_array];
-                    
                     let hidden = Array(this.h).fill(0);
                     for(let i=0; i<this.h; i++) {
                         let sum = 0;
@@ -164,7 +200,7 @@
                     return output;
                 }
 
-                train(input_array, target_array, lr = 0.1) {
+                train(input_array, target_array, lr) {
                     let hidden = Array(this.h).fill(0);
                     for(let i=0; i<this.h; i++) hidden[i] = sigmoid(input_array.reduce((sum, val, j) => sum + val * this.w_ih[i][j], 0) + this.b_h[i]);
                     
@@ -191,7 +227,7 @@
                 }
             }
 
-            // --- INICIALIZACIÓN DE CANVAS ---
+            // --- INICIALIZACIÓN ---
             const cvs = document.getElementById('gameCanvas');
             const ctx = cvs.getContext('2d');
             const nnCvs = document.getElementById('nnCanvas');
@@ -199,94 +235,75 @@
 
             let nn = new NeuralNetwork(3, 6, 1);
 
-            let frames = 0;
-            let score = 0;
-            let difficulty = 1;
-            let gameSpeed = 3;
-            let pipeSpawnRate = 100;
+            let frames = 0, score = 0, difficulty = 1, gameSpeed = 3, pipeSpawnRate = 100;
             let gameState = 'IDLE'; 
             let collectedData = [];
             let userWantsToJump = false;
 
+            // --- UI DE AJUSTES (NUEVO) ---
+            const slNeurons = document.getElementById('slNeurons');
+            const valNeurons = document.getElementById('valNeurons');
+            
+            slNeurons.addEventListener('input', (e) => { valNeurons.innerText = e.target.value; });
+
+            document.getElementById('btnApplyConfig').addEventListener('click', () => {
+                let h = parseInt(slNeurons.value);
+                
+                // Contar cuántos inputs (sentidos) ha seleccionado el usuario
+                let inputsCount = 0;
+                if(document.getElementById('chkDistX').checked) inputsCount++;
+                if(document.getElementById('chkDistY').checked) inputsCount++;
+                if(document.getElementById('chkVel').checked) inputsCount++;
+                if(document.getElementById('chkPosY').checked) inputsCount++;
+
+                if(inputsCount === 0) {
+                    setStatus("¡La IA necesita al menos un sentido marcado para poder ver!", true);
+                    return;
+                }
+
+                // Re-creamos la red neuronal con la nueva arquitectura
+                nn = new NeuralNetwork(inputsCount, h, 1);
+                
+                // Actualizamos el texto descriptivo
+                document.getElementById('nnDesc').innerText = `Nodos: ${inputsCount} Entradas → ${h} Ocultos → 1 Salida.`;
+
+                // Borrar datos incompatibles
+                collectedData = [];
+                document.getElementById('dataCount').innerText = 0;
+                document.getElementById('dataLog').innerHTML = '<div class="text-center text-[#464849] mt-6">Datos reseteados por cambio de arquitectura...</div>';
+                
+                resetGame('IDLE');
+                setStatus("Arquitectura aplicada. Recolecta nuevos datos para entrenarla.");
+            });
+
+            // --- CLASES DEL JUEGO ---
             class Bird {
                 constructor() {
-                    this.x = 60;
-                    this.y = cvs.height / 2;
-                    this.velocity = 0;
-                    this.gravity = 0.4;
-                    this.jumpStrength = 6.5;
-                    this.radius = 14;
-                    this.frameCount = 0;
+                    this.x = 60; this.y = cvs.height / 2;
+                    this.velocity = 0; this.gravity = 0.4; this.jumpStrength = 6.5;
+                    this.radius = 14; this.frameCount = 0;
                 }
-                update() {
-                    this.velocity += this.gravity;
-                    this.y += this.velocity;
-                }
-                jump() {
-                    this.velocity = -this.jumpStrength;
-                }
+                update() { this.velocity += this.gravity; this.y += this.velocity; }
+                jump() { this.velocity = -this.jumpStrength; }
                 draw() {
-                    this.frameCount++;
-                    ctx.save();
-                    ctx.translate(this.x, this.y);
-                    
+                    this.frameCount++; ctx.save(); ctx.translate(this.x, this.y);
                     let rotation = Math.min(Math.PI / 4, Math.max(-Math.PI / 4, (this.velocity * 0.1)));
                     ctx.rotate(rotation);
-
-                    // Cuerpo
-                    ctx.beginPath();
-                    ctx.ellipse(0, 0, this.radius + 6, this.radius, 0, 0, Math.PI * 2);
-                    ctx.fillStyle = '#F9E40B';
-                    ctx.fill();
-                    ctx.lineWidth = 2;
-                    ctx.strokeStyle = '#B59E30';
-                    ctx.stroke();
-
-                    // Barriga
-                    ctx.beginPath();
-                    ctx.ellipse(2, 4, this.radius, this.radius - 4, 0, 0, Math.PI * 2);
-                    ctx.fillStyle = '#F3DA4B';
-                    ctx.fill();
-
-                    // Ala
+                    ctx.beginPath(); ctx.ellipse(0, 0, this.radius + 6, this.radius, 0, 0, Math.PI * 2);
+                    ctx.fillStyle = '#F9E40B'; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = '#B59E30'; ctx.stroke();
+                    ctx.beginPath(); ctx.ellipse(2, 4, this.radius, this.radius - 4, 0, 0, Math.PI * 2); ctx.fillStyle = '#F3DA4B'; ctx.fill();
                     let flapOffset = (this.frameCount % 20 < 10) ? 3 : -3;
-                    ctx.beginPath();
-                    ctx.ellipse(-6, 2 + flapOffset, 8, 5, -Math.PI / 8, 0, Math.PI * 2);
-                    ctx.fillStyle = '#FFFFFF';
-                    ctx.fill();
-                    ctx.lineWidth = 1.5;
-                    ctx.strokeStyle = '#B59E30';
-                    ctx.stroke();
-
-                    // Pico
-                    ctx.beginPath();
-                    ctx.moveTo(this.radius + 4, -2);
-                    ctx.lineTo(this.radius + 14, 2);
-                    ctx.lineTo(this.radius + 4, 6);
-                    ctx.fillStyle = '#D97706';
-                    ctx.fill();
-                    ctx.stroke();
-
-                    // Ojo
-                    ctx.beginPath();
-                    ctx.arc(8, -5, 5, 0, Math.PI*2);
-                    ctx.fillStyle = '#FFFFFF';
-                    ctx.fill();
-                    ctx.stroke();
-                    
-                    ctx.beginPath();
-                    ctx.arc(10, -5, 2, 0, Math.PI*2);
-                    ctx.fillStyle = '#1B1B1E';
-                    ctx.fill();
-
+                    ctx.beginPath(); ctx.ellipse(-6, 2 + flapOffset, 8, 5, -Math.PI / 8, 0, Math.PI * 2); ctx.fillStyle = '#FFFFFF'; ctx.fill(); ctx.lineWidth = 1.5; ctx.stroke();
+                    ctx.beginPath(); ctx.moveTo(this.radius + 4, -2); ctx.lineTo(this.radius + 14, 2); ctx.lineTo(this.radius + 4, 6); ctx.fillStyle = '#D97706'; ctx.fill(); ctx.stroke();
+                    ctx.beginPath(); ctx.arc(8, -5, 5, 0, Math.PI*2); ctx.fillStyle = '#FFFFFF'; ctx.fill(); ctx.stroke();
+                    ctx.beginPath(); ctx.arc(10, -5, 2, 0, Math.PI*2); ctx.fillStyle = '#1B1B1E'; ctx.fill();
                     ctx.restore();
                 }
             }
 
             class Pipe {
                 constructor() {
-                    this.x = cvs.width;
-                    this.w = 50;
+                    this.x = cvs.width; this.w = 50;
                     this.gap = Math.max(75, 160 - (difficulty * 12));
                     this.topH = Math.random() * (cvs.height - this.gap - 60) + 30;
                     this.bottomY = this.topH + this.gap;
@@ -294,42 +311,18 @@
                 }
                 update() { this.x -= gameSpeed; }
                 draw() {
-                    let bodyColor = '#606C43';
-                    let borderColor = '#2D473B';
-                    let highlightColor = '#898B4B';
-
-                    ctx.lineWidth = 2;
-                    let capH = 24;
-                    let capW = this.w + 12;
-                    let capOffsetX = -6;
-
-                    // Tubo superior
-                    ctx.fillStyle = bodyColor;
-                    ctx.strokeStyle = borderColor;
-                    ctx.fillRect(this.x, 0, this.w, this.topH - capH);
-                    ctx.strokeRect(this.x, 0, this.w, this.topH - capH);
-                    ctx.fillStyle = highlightColor;
-                    ctx.fillRect(this.x + 5, 0, 4, this.topH - capH);
-                    
-                    ctx.fillStyle = bodyColor;
-                    ctx.fillRect(this.x + capOffsetX, this.topH - capH, capW, capH);
-                    ctx.strokeRect(this.x + capOffsetX, this.topH - capH, capW, capH);
-                    ctx.fillStyle = highlightColor;
-                    ctx.fillRect(this.x + capOffsetX + 5, this.topH - capH + 2, 4, capH - 4);
-
-                    // Tubo inferior
+                    let bodyColor = '#606C43', borderColor = '#2D473B', highlightColor = '#898B4B';
+                    ctx.lineWidth = 2; let capH = 24, capW = this.w + 12, capOffsetX = -6;
+                    ctx.fillStyle = bodyColor; ctx.strokeStyle = borderColor;
+                    ctx.fillRect(this.x, 0, this.w, this.topH - capH); ctx.strokeRect(this.x, 0, this.w, this.topH - capH);
+                    ctx.fillStyle = highlightColor; ctx.fillRect(this.x + 5, 0, 4, this.topH - capH);
+                    ctx.fillStyle = bodyColor; ctx.fillRect(this.x + capOffsetX, this.topH - capH, capW, capH); ctx.strokeRect(this.x + capOffsetX, this.topH - capH, capW, capH);
+                    ctx.fillStyle = highlightColor; ctx.fillRect(this.x + capOffsetX + 5, this.topH - capH + 2, 4, capH - 4);
                     let bottomH = cvs.height - this.bottomY;
-                    ctx.fillStyle = bodyColor;
-                    ctx.fillRect(this.x, this.bottomY + capH, this.w, bottomH - capH);
-                    ctx.strokeRect(this.x, this.bottomY + capH, this.w, bottomH - capH);
-                    ctx.fillStyle = highlightColor;
-                    ctx.fillRect(this.x + 5, this.bottomY + capH, 4, bottomH - capH);
-
-                    ctx.fillStyle = bodyColor;
-                    ctx.fillRect(this.x + capOffsetX, this.bottomY, capW, capH);
-                    ctx.strokeRect(this.x + capOffsetX, this.bottomY, capW, capH);
-                    ctx.fillStyle = highlightColor;
-                    ctx.fillRect(this.x + capOffsetX + 5, this.bottomY + 2, 4, capH - 4);
+                    ctx.fillStyle = bodyColor; ctx.fillRect(this.x, this.bottomY + capH, this.w, bottomH - capH); ctx.strokeRect(this.x, this.bottomY + capH, this.w, bottomH - capH);
+                    ctx.fillStyle = highlightColor; ctx.fillRect(this.x + 5, this.bottomY + capH, 4, bottomH - capH);
+                    ctx.fillStyle = bodyColor; ctx.fillRect(this.x + capOffsetX, this.bottomY, capW, capH); ctx.strokeRect(this.x + capOffsetX, this.bottomY, capW, capH);
+                    ctx.fillStyle = highlightColor; ctx.fillRect(this.x + capOffsetX + 5, this.bottomY + 2, 4, capH - 4);
                 }
             }
 
@@ -351,31 +344,17 @@
             }
 
             function resetGame(mode) {
-                bird = new Bird();
-                pipes = [];
-                score = 0;
-                difficulty = 1;
-                gameSpeed = 3.5;
-                pipeSpawnRate = 100;
-                frames = 0;
-                gameState = mode;
-                
-                document.getElementById('scoreDisplay').innerText = score;
-                document.getElementById('diffDisplay').innerText = difficulty;
+                bird = new Bird(); pipes = []; score = 0; difficulty = 1; gameSpeed = 3.5; pipeSpawnRate = 100; frames = 0; gameState = mode;
+                document.getElementById('scoreDisplay').innerText = score; document.getElementById('diffDisplay').innerText = difficulty;
                 document.getElementById('gameOverlay').classList.add('hidden');
                 
                 const brainPanel = document.getElementById('brainPanel');
-
                 if (mode === 'AI_PLAY') {
-                    document.getElementById('aiActivePing').classList.remove('opacity-0');
-                    document.getElementById('aiActiveDot').classList.replace('bg-[#464849]', 'bg-[#F9E40B]');
-                    brainPanel.classList.remove('hidden');
-                    brainPanel.classList.add('flex');
+                    document.getElementById('aiActivePing').classList.remove('opacity-0'); document.getElementById('aiActiveDot').classList.replace('bg-[#464849]', 'bg-[#F9E40B]');
+                    brainPanel.classList.remove('hidden'); brainPanel.classList.add('flex');
                 } else {
-                    document.getElementById('aiActivePing').classList.add('opacity-0');
-                    document.getElementById('aiActiveDot').classList.replace('bg-[#F9E40B]', 'bg-[#464849]');
-                    brainPanel.classList.add('hidden');
-                    brainPanel.classList.remove('flex');
+                    document.getElementById('aiActivePing').classList.add('opacity-0'); document.getElementById('aiActiveDot').classList.replace('bg-[#F9E40B]', 'bg-[#464849]');
+                    brainPanel.classList.add('hidden'); brainPanel.classList.remove('flex');
                 }
             }
 
@@ -383,9 +362,7 @@
                 if(bird.y + bird.radius >= cvs.height || bird.y - bird.radius <= 0) return true;
                 for(let p of pipes) {
                     let bx = bird.x, by = bird.y, r = bird.radius * 0.8;
-                    if(bx + r > p.x && bx - r < p.x + p.w) {
-                        if(by - r < p.topH || by + r > p.bottomY) return true;
-                    }
+                    if(bx + r > p.x && bx - r < p.x + p.w) { if(by - r < p.topH || by + r > p.bottomY) return true; }
                 }
                 return false;
             }
@@ -394,41 +371,32 @@
                 let jumps = data.filter(d => d.targets[0] === 1);
                 let nonJumps = data.filter(d => d.targets[0] === 0);
                 if(jumps.length < 5) return null; 
-                let limit = jumps.length;
-                nonJumps.sort(() => Math.random() - 0.5);
+                let limit = jumps.length; nonJumps.sort(() => Math.random() - 0.5);
                 return jumps.concat(nonJumps.slice(0, Math.min(limit, nonJumps.length)));
             }
 
             function trainNetwork() {
-                if(collectedData.length < 50) {
-                    setStatus("¡Juega un poco más! Necesitamos al menos 50 datos.", true);
-                    return;
-                }
-                
+                if(collectedData.length < 50) { setStatus("¡Juega un poco más! Necesitamos al menos 50 datos.", true); return; }
                 let dataset = balanceData(collectedData);
-                if(!dataset) {
-                    setStatus("Error: Registraste muy pocos saltos reales.", true);
-                    return;
-                }
+                if(!dataset) { setStatus("Error: Registraste muy pocos saltos reales.", true); return; }
                 
                 gameState = 'TRAINING';
                 setStatus("Entrenando la red neuronal...");
                 document.getElementById('trainProgressContainer').classList.remove('hidden');
                 
-                let epochs = 1500;
+                // Obtenemos los hiperparámetros de la UI
+                let epochs = parseInt(document.getElementById('selEpochs').value);
+                let lr = parseFloat(document.getElementById('selLR').value);
                 let currentEpoch = 0;
                 
                 function batchTrain() {
-                    for(let k=0; k<25; k++) {
-                        if(currentEpoch >= epochs) {
-                            finishTraining();
-                            return;
-                        }
+                    let stepsPerFrame = Math.max(10, Math.floor(epochs / 60)); // Ajustar velocidad visual de la barra
+                    for(let k=0; k<stepsPerFrame; k++) {
+                        if(currentEpoch >= epochs) { finishTraining(); return; }
                         dataset.sort(() => Math.random() - 0.5);
-                        for(let d of dataset) nn.train(d.inputs, d.targets, 0.25);
+                        for(let d of dataset) nn.train(d.inputs, d.targets, lr);
                         currentEpoch++;
                     }
-                    
                     let pct = Math.floor((currentEpoch / epochs) * 100);
                     document.getElementById('trainProgressBar').style.width = pct + '%';
                     document.getElementById('trainPercent').innerText = pct + '%';
@@ -438,12 +406,9 @@
             }
 
             function finishTraining() {
-                gameState = 'IDLE';
-                setStatus("¡Entrenamiento completado! Deja que la IA juegue.");
+                gameState = 'IDLE'; setStatus("¡Entrenamiento completado! Deja que la IA juegue.");
                 setTimeout(() => { document.getElementById('trainProgressContainer').classList.add('hidden'); }, 1500);
-                
-                let btnAI = document.getElementById('btnAI');
-                btnAI.disabled = false;
+                let btnAI = document.getElementById('btnAI'); btnAI.disabled = false;
                 btnAI.classList.remove('bg-[#1B1B1E]', 'text-[#464849]', 'cursor-not-allowed', 'border-[#464849]');
                 btnAI.classList.add('bg-[#F9E40B]', 'text-[#1B1B1E]', 'hover:bg-[#F3DA4B]', 'shadow-[0_0_15px_rgba(249,228,11,0.4)]');
             }
@@ -451,57 +416,45 @@
             function drawNN() {
                 nnCtx.clearRect(0, 0, nnCvs.width, nnCvs.height);
                 const layers = [nn.i, nn.h, nn.o];
-                const nodeRadius = 8;
+                const nodeRadius = Math.max(4, 12 - (nn.h * 0.4)); // Escalar radio si hay muchos nodos
                 const paddingX = nnCvs.width / 4;
                 
-                let positions = [];
-                let acts = [nn.lastInputs, nn.lastHidden, nn.lastOutput];
-
+                let positions = []; let acts = [nn.lastInputs, nn.lastHidden, nn.lastOutput];
                 for (let l = 0; l < layers.length; l++) {
-                    let layerPos = [];
-                    let spacingY = nnCvs.height / (layers[l] + 1);
+                    let layerPos = []; let spacingY = nnCvs.height / (layers[l] + 1);
                     let x = paddingX * (l + 1);
-                    for (let n = 0; n < layers[l]; n++) {
-                        layerPos.push({ x: x, y: spacingY * (n + 1), act: acts[l][n] });
-                    }
+                    for (let n = 0; n < layers[l]; n++) layerPos.push({ x: x, y: spacingY * (n + 1), act: acts[l][n] });
                     positions.push(layerPos);
                 }
 
-                nnCtx.lineWidth = 1;
-                nnCtx.strokeStyle = 'rgba(70, 72, 73, 0.4)';
-                for(let h=0; h<nn.h; h++) {
-                    for(let i=0; i<nn.i; i++) {
-                        nnCtx.beginPath(); nnCtx.moveTo(positions[0][i].x, positions[0][i].y); nnCtx.lineTo(positions[1][h].x, positions[1][h].y); nnCtx.stroke();
-                    }
-                }
-                for(let o=0; o<nn.o; o++) {
-                    for(let h=0; h<nn.h; h++) {
-                        nnCtx.beginPath(); nnCtx.moveTo(positions[1][h].x, positions[1][h].y); nnCtx.lineTo(positions[2][o].x, positions[2][o].y); nnCtx.stroke();
-                    }
-                }
+                nnCtx.lineWidth = 1; nnCtx.strokeStyle = 'rgba(70, 72, 73, 0.4)';
+                for(let h=0; h<nn.h; h++) { for(let i=0; i<nn.i; i++) { nnCtx.beginPath(); nnCtx.moveTo(positions[0][i].x, positions[0][i].y); nnCtx.lineTo(positions[1][h].x, positions[1][h].y); nnCtx.stroke(); } }
+                for(let o=0; o<nn.o; o++) { for(let h=0; h<nn.h; h++) { nnCtx.beginPath(); nnCtx.moveTo(positions[1][h].x, positions[1][h].y); nnCtx.lineTo(positions[2][o].x, positions[2][o].y); nnCtx.stroke(); } }
 
                 for (let l = 0; l < positions.length; l++) {
                     for (let n = 0; n < positions[l].length; n++) {
                         let node = positions[l][n];
-                        nnCtx.beginPath();
-                        nnCtx.arc(node.x, node.y, nodeRadius, 0, Math.PI * 2);
-                        
+                        nnCtx.beginPath(); nnCtx.arc(node.x, node.y, nodeRadius, 0, Math.PI * 2);
                         let act = node.act;
-                        let r = Math.round(70 + (249 - 70) * act);
-                        let g = Math.round(72 + (228 - 72) * act);
-                        let b = Math.round(73 + (11 - 73) * act);
-                        
-                        nnCtx.fillStyle = `rgb(${r},${g},${b})`;
-                        nnCtx.fill();
-                        
+                        let r = Math.round(70 + (249 - 70) * act), g = Math.round(72 + (228 - 72) * act), b = Math.round(73 + (11 - 73) * act);
+                        nnCtx.fillStyle = `rgb(${r},${g},${b})`; nnCtx.fill();
                         if(act > 0.8) { nnCtx.shadowBlur = 10; nnCtx.shadowColor = '#F9E40B'; }
                         nnCtx.strokeStyle = '#CBC9C2'; nnCtx.stroke(); nnCtx.shadowBlur = 0;
                     }
                 }
             }
 
+            // NUEVO: Función para generar el array de inputs dinámicamente según la UI
+            function getActiveInputs(closestPipe, gapCenterY) {
+                let inputs = [];
+                if(document.getElementById('chkDistX').checked) inputs.push((closestPipe.x + closestPipe.w - bird.x) / cvs.width);
+                if(document.getElementById('chkDistY').checked) inputs.push((bird.y - gapCenterY) / cvs.height);
+                if(document.getElementById('chkVel').checked) inputs.push(bird.velocity / 10);
+                if(document.getElementById('chkPosY').checked) inputs.push(bird.y / cvs.height);
+                return inputs;
+            }
+
             function gameLoop() {
-                // Siempre limpiar el canvas general
                 ctx.clearRect(0, 0, cvs.width, cvs.height);
 
                 if(gameState === 'MANUAL_PLAY' || gameState === 'AI_PLAY') {
@@ -512,12 +465,8 @@
 
                     let gapCenterY = closestPipe.topH + (closestPipe.bottomY - closestPipe.topH) / 2;
 
-                    let inputs = [
-                        (closestPipe.x + closestPipe.w - bird.x) / cvs.width,
-                        (bird.y - gapCenterY) / cvs.height,
-                        bird.velocity / 10
-                    ];
-
+                    // Usamos la nueva función dinámica
+                    let inputs = getActiveInputs(closestPipe, gapCenterY);
                     let output = nn.predict(inputs);
 
                     if(gameState === 'MANUAL_PLAY') {
@@ -530,7 +479,8 @@
                             if (logEl.children.length > 0 && logEl.children[0].innerText.includes('Los datos')) logEl.innerHTML = '';
                             
                             let row = document.createElement('div');
-                            row.innerText = `In:[X:${inputs[0].toFixed(2)}, Y:${inputs[1].toFixed(2)}, V:${inputs[2].toFixed(2)}] → Out: ${action === 1 ? 'SALTO' : 'NADA'}`;
+                            // Resumen de las entradas de manera condensada
+                            row.innerText = `In:[${inputs.map(n => n.toFixed(2)).join(',')}] → ${action === 1 ? 'SALTA' : '-'}`;
                             if(action === 1) row.classList.add('text-[#F9E40B]', 'font-bold');
                             else row.classList.add('text-[#898B4B]');
                             
@@ -542,21 +492,14 @@
                         if(output[0] > 0.5 && bird.velocity >= -2) bird.jump();
                     }
 
-                    bird.update();
-                    bird.draw();
+                    bird.update(); bird.draw();
 
                     for(let i = pipes.length - 1; i >= 0; i--) {
-                        pipes[i].update();
-                        pipes[i].draw();
-
+                        pipes[i].update(); pipes[i].draw();
                         if(!pipes[i].passed && pipes[i].x + pipes[i].w < bird.x) {
-                            score++;
-                            pipes[i].passed = true;
+                            score++; pipes[i].passed = true;
                             document.getElementById('scoreDisplay').innerText = score;
-                            if(score % 4 === 0) {
-                                difficulty++;
-                                document.getElementById('diffDisplay').innerText = difficulty;
-                            }
+                            if(score % 4 === 0) { difficulty++; document.getElementById('diffDisplay').innerText = difficulty; }
                         }
                         if(pipes[i].x + pipes[i].w < 0) pipes.splice(i, 1);
                     }
@@ -565,14 +508,12 @@
                         gameState = 'GAME_OVER';
                         document.getElementById('gameOverlay').classList.remove('hidden');
                         document.getElementById('overlayText').innerText = "¡CHOQUE!";
-                        setStatus(gameState === 'AI_PLAY' ? "La IA cometió un error. ¡Entrénala con más datos!" : "Fin del juego. Selecciona una acción.", true);
+                        setStatus(gameState === 'AI_PLAY' ? "La IA chocó. ¿Quizás necesita más datos o cambiar la arquitectura?" : "Fin del juego. Entrena la IA o sigue jugando.", true);
                     }
                     frames++;
 
                 } else if (gameState === 'IDLE' || gameState === 'GAME_OVER') {
-                    // Si el juego está pausado, solo dibujamos los elementos estáticos para que no quede la pantalla negra
-                    bird.draw();
-                    for(let p of pipes) p.draw();
+                    bird.draw(); for(let p of pipes) p.draw();
                 }
 
                 drawNN();
@@ -580,46 +521,26 @@
             }
 
             function triggerJump() {
-                if(gameState === 'MANUAL_PLAY') {
-                    userWantsToJump = true;
-                } else if (gameState === 'IDLE' || gameState === 'GAME_OVER') {
-                    resetGame('MANUAL_PLAY');
-                }
+                if(gameState === 'MANUAL_PLAY') userWantsToJump = true;
+                else if (gameState === 'IDLE' || gameState === 'GAME_OVER') resetGame('MANUAL_PLAY');
             }
 
-            window.addEventListener('keydown', (e) => {
-                if(e.code === 'Space' || e.code === 'ArrowUp') {
-                    triggerJump();
-                    e.preventDefault();
-                }
-            });
+            window.addEventListener('keydown', (e) => { if(e.code === 'Space' || e.code === 'ArrowUp') { triggerJump(); e.preventDefault(); } });
             cvs.addEventListener('mousedown', triggerJump);
             cvs.addEventListener('touchstart', (e) => { triggerJump(); e.preventDefault(); }, {passive: false});
 
-            document.getElementById('btnHuman').addEventListener('click', () => {
-                resetGame('MANUAL_PLAY');
-                setStatus("Jugando (Humano). Usa Espacio para saltar y generar datos.");
-            });
-
-            document.getElementById('btnTrain').addEventListener('click', () => {
-                if(gameState !== 'TRAINING') trainNetwork();
-            });
-
+            document.getElementById('btnHuman').addEventListener('click', () => { resetGame('MANUAL_PLAY'); setStatus("Jugando (Humano). Usa Espacio para saltar y generar datos."); });
+            document.getElementById('btnTrain').addEventListener('click', () => { if(gameState !== 'TRAINING') trainNetwork(); });
             document.getElementById('btnAI').addEventListener('click', () => {
-                if(!document.getElementById('btnAI').disabled) {
-                    resetGame('AI_PLAY');
-                    setStatus("Modo IA activado. Observa a la red neuronal jugar por sí misma.");
-                }
+                if(!document.getElementById('btnAI').disabled) { resetGame('AI_PLAY'); setStatus("Modo IA. Observa cómo influyen los hiperparámetros que configuraste."); }
             });
 
             document.getElementById('btnResetData').addEventListener('click', () => {
-                collectedData = [];
-                document.getElementById('dataCount').innerText = 0;
-                document.getElementById('dataLog').innerHTML = '<div class="text-center text-[#464849] mt-10">Los datos aparecerán aquí...</div>';
+                collectedData = []; document.getElementById('dataCount').innerText = 0;
+                document.getElementById('dataLog').innerHTML = '<div class="text-center text-[#464849] mt-6">Los datos aparecerán aquí...</div>';
                 setStatus("Datos borrados. Empieza a jugar para generar un nuevo set.", false);
             });
 
-            // Arrancar el bucle
             gameLoop();
         });
     </script>
